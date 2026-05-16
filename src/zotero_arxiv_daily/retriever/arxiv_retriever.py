@@ -8,6 +8,7 @@ import feedparser
 from tqdm import tqdm
 import multiprocessing
 import os
+import re
 from queue import Empty
 from typing import Any, Callable, TypeVar
 from loguru import logger
@@ -18,6 +19,12 @@ T = TypeVar("T")
 DOWNLOAD_TIMEOUT = (10, 60)
 PDF_EXTRACT_TIMEOUT = 180
 TAR_EXTRACT_TIMEOUT = 180
+
+
+def build_arxiv_doi_url(entry_id: str) -> str:
+    arxiv_id = entry_id.rstrip("/").rsplit("/", 1)[-1]
+    arxiv_id = re.sub(r"v\d+$", "", arxiv_id)
+    return f"https://doi.org/10.48550/arXiv.{arxiv_id}"
 
 
 def _download_file(url: str, path: str) -> None:
@@ -158,6 +165,7 @@ class ArxivRetriever(BaseRetriever):
             abstract=abstract,
             url=raw_paper.entry_id,
             pdf_url=pdf_url,
+            doi_url=build_arxiv_doi_url(raw_paper.entry_id),
             full_text=full_text,
         )
 
