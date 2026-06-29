@@ -21,6 +21,7 @@ class Paper:
     tldr: Optional[str] = None
     affiliations: Optional[list[str]] = None
     score: Optional[float] = None
+    markdown_summary: Optional[str] = None
 
     def _generate_tldr_with_llm(self, openai_client:OpenAI,llm_params:dict) -> str:
         lang = llm_params.get('language', 'English')
@@ -104,6 +105,63 @@ class Paper:
             logger.warning(f"Failed to generate affiliations of {self.url}: {e}")
             self.affiliations = None
             return None
+
+    def _generate_markdown_summary_with_llm(self, openai_client:OpenAI,llm_params:dict) -> str:
+        prompt = f"""Given the following paper metadata, write a concise bilingual Markdown summary.
+Return only these sections, in this exact order:
+
+### 中文一句话结论
+### English TL;DR
+### 中文详细总结
+### 方法 / 贡献
+### 实验或数据
+### 值得关注点
+### 局限性
+
+Use Chinese for all Chinese-titled sections and English for English TL;DR. Do not invent facts. If the abstract does not mention experiments or datasets, say so.
+
+Title:
+{self.title}
+
+Authors:
+{", ".join(self.authors)}
+
+Abstract:
+{self.abstract}
+
+Existing TL;DR:
+{self.tldr or ""}
+"""
+        if self.full_text:
+            prompt += f"\nPreview of main content:\n{self.full_text}\n"
+
+        enc = tiktoken.encoding_for_model("gpt-4o")
+        prompt_tokens = enc.encode(prompt)
+        prompt_tokens = prompt_tokens[:5000]
+        prompt = enc.decode(prompt_tokens)
+
+        response = openai_client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You summarize scientific papers accurately for a researcher. Be concise, bilingual where requested, and avoid unsupported claims.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            **llm_params.get('generation_kwargs', {})
+        )
+        return response.choices[0].message.content
+
+    def generate_markdown_summary(self, openai_client:OpenAI,llm_params:dict) -> str:
+        try:
+            summary = self._generate_markdown_summary_with_llm(openai_client,llm_params)
+            self.markdown_summary = summary
+            return summary
+        except Exception as e:
+            logger.warning(f"Failed to generate markdown summary of {self.url}: {e}")
+            summary = self.tldr or self.abstract
+            self.markdown_summary = None
+            return summary
 @dataclass
 class CorpusPaper:
     title: str

@@ -4,6 +4,9 @@ on:
   schedule:
     - cron: '0 22 * * *'
 
+permissions:
+  contents: write
+
 jobs:
   calculate-and-send:
     runs-on: ubuntu-latest
@@ -32,3 +35,15 @@ jobs:
           echo "Use custom config: "
           cat config/custom.yaml
           uv run src/zotero_arxiv_daily/main.py
+
+      - name: Commit generated summaries
+        run: |
+          if [ -z "$(git status --porcelain summaries)" ]; then
+            echo "No generated summaries to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add summaries
+          git commit -m "Add daily arXiv summary"
+          git push

@@ -148,7 +148,7 @@ def test_fetch_zotero_corpus_paper_with_zero_collections(config, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_run_end_to_end(config, monkeypatch):
+def test_run_end_to_end(config, monkeypatch, tmp_path):
     """Full pipeline: Zotero fetch -> filter -> retrieve -> rerank -> TLDR -> email."""
     import smtplib
 
@@ -167,6 +167,7 @@ def test_run_end_to_end(config, monkeypatch):
         config.executor.source = ["arxiv"]
         config.executor.reranker = "api"
         config.executor.send_empty = False
+        config.executor.markdown_output_dir = str(tmp_path)
 
     # 1. Stub pyzotero
     stub_zot = make_stub_zotero_client()
@@ -207,6 +208,7 @@ def test_run_end_to_end(config, monkeypatch):
     assert len(sent) == 1, "Email should have been sent"
     _, _, email_body = sent[0]
     assert "text/html" in email_body
+    assert list(tmp_path.glob("*-daily-arxiv.md"))
 
 
 def test_run_no_papers_send_empty_false(config, monkeypatch):
@@ -245,7 +247,7 @@ def test_run_no_papers_send_empty_false(config, monkeypatch):
     assert len(sent) == 0, "No email should be sent when no papers and send_empty=false"
 
 
-def test_run_no_papers_send_empty_true(config, monkeypatch):
+def test_run_no_papers_send_empty_true(config, monkeypatch, tmp_path):
     """When no papers are found and send_empty=true, empty email is sent."""
     import smtplib
 
@@ -257,6 +259,7 @@ def test_run_no_papers_send_empty_true(config, monkeypatch):
         config.executor.source = ["arxiv"]
         config.executor.reranker = "api"
         config.executor.send_empty = True
+        config.executor.markdown_output_dir = str(tmp_path)
 
     stub_zot = make_stub_zotero_client()
     monkeypatch.setattr("zotero_arxiv_daily.executor.zotero.Zotero", lambda *a, **kw: stub_zot)
@@ -281,3 +284,4 @@ def test_run_no_papers_send_empty_true(config, monkeypatch):
     assert len(sent) == 1, "Email should be sent even with no papers when send_empty=true"
     _, _, body = sent[0]
     assert "text/html" in body
+    assert list(tmp_path.glob("*-daily-arxiv.md"))

@@ -8,6 +8,7 @@ import random
 from datetime import datetime
 from .reranker import get_reranker_cls
 from .construct_email import render_email
+from .construct_markdown import write_markdown_summary
 from .utils import send_email
 from openai import OpenAI
 from tqdm import tqdm
@@ -115,9 +116,15 @@ class Executor:
             for p in tqdm(reranked_papers):
                 p.generate_tldr(self.openai_client, self.config.llm)
                 p.generate_affiliations(self.openai_client, self.config.llm)
+                if self.config.executor.get("save_markdown", True):
+                    p.generate_markdown_summary(self.openai_client, self.config.llm)
         elif not self.config.executor.send_empty:
             logger.info("No new papers found. No email will be sent.")
             return
+        if self.config.executor.get("save_markdown", True):
+            output_dir = self.config.executor.get("markdown_output_dir", "summaries")
+            markdown_path = write_markdown_summary(reranked_papers, output_dir)
+            logger.info(f"Markdown summary saved to {markdown_path}")
         logger.info("Sending email...")
         email_content = render_email(reranked_papers)
         send_email(self.config, email_content)

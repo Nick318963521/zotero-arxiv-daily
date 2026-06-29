@@ -24,3 +24,5 @@ source:
 executor:
   debug: ${oc.env:DEBUG,null}
   source: ['arxiv']
+  save_markdown: true
+  markdown_output_dir: summaries

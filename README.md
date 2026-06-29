@@ -100,8 +100,11 @@ source:
 executor:
   debug: ${oc.env:DEBUG,null}
   source: ['arxiv']
+  save_markdown: true
+  markdown_output_dir: summaries
 ```
 Set `source.arxiv.include_cross_list: true` if you want cross-listed papers included.
+With `save_markdown: true`, each workflow run writes a Markdown digest to `summaries/` and commits it back to the repository.
 >[!NOTE]
 > `${oc.env:XXX,yyy}` means the value of the environment variable `XXX`. If the variable is not set, the default value `yyy` will be used.
 
@@ -154,6 +157,8 @@ reranker:
 executor:
   debug: false # Whether to use debug mode. Example: true
   send_empty: false # Whether to send an empty email even if no new papers today. Example: true
+  save_markdown: true # Whether to save a Markdown digest for the same papers sent by email. Example: true
+  markdown_output_dir: summaries # Directory for generated Markdown digests. Example: summaries
   max_paper_num: 100 # The maximum number of the papers presented in the email. Example: 100
   source: ??? # The sources of papers to retrieve. Example: ['arxiv','biorxiv','medrxiv']
   reranker: local # The reranker to use. Example: 'local' or 'api'
