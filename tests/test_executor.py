@@ -211,7 +211,7 @@ def test_run_end_to_end(config, monkeypatch, tmp_path):
     assert list(tmp_path.glob("*-daily-arxiv.md"))
 
 
-def test_run_no_papers_send_empty_false(config, monkeypatch):
+def test_run_no_papers_send_empty_false(config, monkeypatch, tmp_path):
     """When no papers are found and send_empty=false, no email is sent."""
     import smtplib
 
@@ -223,6 +223,7 @@ def test_run_no_papers_send_empty_false(config, monkeypatch):
         config.executor.source = ["arxiv"]
         config.executor.reranker = "api"
         config.executor.send_empty = False
+        config.executor.markdown_output_dir = str(tmp_path)
 
     stub_zot = make_stub_zotero_client()
     monkeypatch.setattr("zotero_arxiv_daily.executor.zotero.Zotero", lambda *a, **kw: stub_zot)
@@ -245,6 +246,9 @@ def test_run_no_papers_send_empty_false(config, monkeypatch):
     executor.run()
 
     assert len(sent) == 0, "No email should be sent when no papers and send_empty=false"
+    markdown_files = list(tmp_path.glob("*-daily-arxiv.md"))
+    assert markdown_files
+    assert "No Papers Today" in markdown_files[0].read_text(encoding="utf-8")
 
 
 def test_run_no_papers_send_empty_true(config, monkeypatch, tmp_path):

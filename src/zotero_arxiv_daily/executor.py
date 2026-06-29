@@ -119,6 +119,10 @@ class Executor:
                 if self.config.executor.get("save_markdown", True):
                     p.generate_markdown_summary(self.openai_client, self.config.llm)
         elif not self.config.executor.send_empty:
+            if self.config.executor.get("save_markdown", True):
+                output_dir = self.config.executor.get("markdown_output_dir", "summaries")
+                markdown_path = write_markdown_summary(reranked_papers, output_dir)
+                logger.info(f"Markdown summary saved to {markdown_path}")
             logger.info("No new papers found. No email will be sent.")
             return
         if self.config.executor.get("save_markdown", True):
